@@ -15,6 +15,9 @@ name: Shell Windows Build
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - shell
 
 env:
   SCITER_RUST_VERSION: "1.75"
