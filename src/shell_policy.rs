@@ -28,6 +28,40 @@ pub fn locks_compiled_servers() -> bool {
     locks_server_config(option_env!("SHELL_ID_SERVER"))
 }
 
+/// Same-country relay selection is not implemented.
+///
+/// The shell client has one compiled ID server and no per-country health list.
+/// That server is only a dial target. It cannot scale inside one country or
+/// refuse a cross-country fallback, because there is no fallback to refuse.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum RegionalRelayDecision {
+    NotSchedulable,
+}
+
+pub fn regional_relay_decision(compiled_id_server_count: usize) -> RegionalRelayDecision {
+    let _ = compiled_id_server_count;
+    RegionalRelayDecision::NotSchedulable
+}
+
+/// A lease answer from a business backend and the device that would enforce it.
+///
+/// `Unavailable` means neither side exists. It is not permission to connect,
+/// and it must not be turned into a successful HTTP response by this client.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum LeaseAuthorization {
+    Unavailable,
+}
+
+pub fn lease_authorization_without_backend() -> LeaseAuthorization {
+    LeaseAuthorization::Unavailable
+}
+
+pub fn production_rental_allowed(decision: LeaseAuthorization) -> bool {
+    match decision {
+        LeaseAuthorization::Unavailable => false,
+    }
+}
+
 pub fn builtin_client_config(
     id_server: Option<&str>,
     relay_server: Option<&str>,
@@ -143,5 +177,24 @@ mod tests {
             "https://api.example.com"
         );
         assert_eq!(overrides.get(keys::OPTION_KEY).unwrap(), "public-key");
+    }
+
+    #[test]
+    fn one_compiled_server_is_not_a_regional_relay() {
+        for count in [0, 1, 2] {
+            assert_eq!(
+                regional_relay_decision(count),
+                RegionalRelayDecision::NotSchedulable
+            );
+        }
+        let config = builtin_client_config(Some("id.example.com"), None, None, None, None).unwrap();
+        let overrides = config["override-settings"].as_object().unwrap();
+        assert!(overrides.get("country").is_none());
+        assert!(overrides.get("relay-region").is_none());
+        assert_eq!(
+            lease_authorization_without_backend(),
+            LeaseAuthorization::Unavailable
+        );
+        assert!(!production_rental_allowed(LeaseAuthorization::Unavailable));
     }
 }

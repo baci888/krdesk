@@ -69,7 +69,15 @@ This client does not call it:
   lease ends
 
 Until that exists and is tested against a real server and a real Mac, this
-client cannot claim those controls.
+client cannot claim those controls. `LeaseAuthorization::Unavailable` is the
+only answer this tree can give, and `production_rental_allowed` is false.
+There is no stand-in HTTP handler that returns allow.
+
+Same-country relay, same-country capacity, and refusing a cross-country
+fallback are also outside this client. `regional_relay_decision` stays
+`NotSchedulable` for any count of compiled servers. One compiled address
+cannot prove it is in the device's country, and this client has no health
+list to refuse when that country has no node.
 
 The business backend, not this repository, is also where customer, supplier,
 and platform-admin data have to be separated. A device needs a supplier

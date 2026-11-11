@@ -2,10 +2,11 @@ name: Full Flutter CI
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths-ignore:
-    - "docs/**"
-    - "README.md"
+  # Pull requests do not call this multi-platform build. The 2026-11-11 run
+  # 42953927890 finished as startup_failure in one second, with zero jobs.
+  # GitHub stored no log (the logs API returns 404). shell-checks.yml is the
+  # pull-request check. Start this workflow by hand only when a full build
+  # is intended.
   push:
     branches:
       - master

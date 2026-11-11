@@ -1,9 +1,8 @@
 name: Flutter Nightly Build
 
 on:
-  schedule:
-    # schedule build every night
-    - cron: "0 0 * * *"
+  # The daily full-platform cron is off on this fork. It called the same
+  # multi-platform workflow as Full Flutter CI. Run it by hand if needed.
   workflow_dispatch:
 
 jobs:

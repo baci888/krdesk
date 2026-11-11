@@ -9,10 +9,8 @@ env:
 
 on:
   workflow_dispatch:
-  pull_request:
-    paths-ignore:
-      - "docs/**"
-      - "README.md"
+  # The vcpkg Linux compile is manual here. Pull requests run shell-checks.yml
+  # so opening a PR does not start this build or the full platform matrix.
   push:
     branches:
       - master
