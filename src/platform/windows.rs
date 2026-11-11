@@ -2161,6 +2161,11 @@ pub fn prepare_custom_client_update() -> ResultType<bool> {
 }
 
 pub fn get_license_from_exe_name() -> ResultType<CustomServer> {
+    // A shell build's servers come from the compiler env. The executable name
+    // and RUSTDESK_APPNAME are the upstream retargeting path and would replace them.
+    if crate::shell_policy::locks_compiled_servers() {
+        bail!("compiled shell server config is locked");
+    }
     let mut exe = std::env::current_exe()?.to_str().unwrap_or("").to_owned();
     // if defined portable appname entry, replace original executable name with it.
     if let Ok(portable_exe) = std::env::var(PORTABLE_APPNAME_RUNTIME_ENV_KEY) {

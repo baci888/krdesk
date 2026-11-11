@@ -51,15 +51,15 @@ class _DesktopHomePageState extends State<DesktopHomePage>
   var watchIsCanRecordAudio = false;
   Timer? _updateTimer;
   bool isCardClosed = false;
-  // Shell build: keep asking for an account login until the user signs in.
+  // Local dialog only. Outgoing connects are refused separately until a
+  // token is stored. The token is not checked with the account server.
   StreamSubscription? _loginGateSubscription;
   bool _loginGateRunning = false;
 
   bool get _loginRequired =>
       bind.mainGetHardOption(key: 'require-login') == 'Y';
 
-  bool get _hasAccessToken =>
-      bind.mainGetLocalOption(key: 'access_token').isNotEmpty;
+  bool get _hasAccessToken => shellLocalTokenPresent();
 
   Future<void> _ensureLoggedIn() async {
     if (!_loginRequired || _loginGateRunning) return;
@@ -807,7 +807,8 @@ class _DesktopHomePageState extends State<DesktopHomePage>
     }
 
     rustDeskWinManager.setMethodHandler((call, fromWindowId) async {
-      if (!isChattyMethod(call.method)) {
+      // kWindowConnect arguments include the peer password.
+      if (!isChattyMethod(call.method) && call.method != kWindowConnect) {
         debugPrint(
           "[Main] call ${call.method} with args ${call.arguments} from window $fromWindowId");
       }

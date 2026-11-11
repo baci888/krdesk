@@ -29,6 +29,7 @@ import 'package:window_manager/window_manager.dart';
 import 'package:window_size/window_size.dart' as window_size;
 
 import '../consts.dart';
+import 'common/shell_gate.dart';
 import 'common/widgets/overlay.dart';
 import 'mobile/pages/file_manager_page.dart';
 import 'mobile/pages/remote_page.dart';
@@ -2223,7 +2224,8 @@ StreamSubscription? listenUniLinks({handleByFlutter = true}) {
   }
 
   final sub = uriLinkStream.listen((Uri? uri) {
-    debugPrint("A uri was received: $uri. handleByFlutter $handleByFlutter");
+    // The URI can carry a password query. Do not write it to the log.
+    debugPrint("A uri was received. handleByFlutter $handleByFlutter");
     if (uri != null) {
       if (handleByFlutter) {
         handleUriLink(uri: uri);
@@ -2341,6 +2343,9 @@ bool handleUriLink({List<String>? cmdArgs, Uri? uri, String? uriString}) {
     }
   }
   if (type != null && id != null) {
+    if (!ensureShellOutgoingConnectAllowed()) {
+      return false;
+    }
     switch (type) {
       case UriLinkType.remoteDesktop:
         Future.delayed(Duration.zero, () {
@@ -2522,6 +2527,27 @@ List<String>? urlLinkToCmdArgs(Uri uri) {
   return null;
 }
 
+bool shellLocalTokenPresent() {
+  return shellTokenPresent(bind.mainGetLocalOption(key: 'access_token'));
+}
+
+bool shellOutgoingConnectAllowed() {
+  return shellOutgoingConnectAllowedFor(
+    requireLoginOption: bind.mainGetHardOption(key: 'require-login'),
+    accessToken: bind.mainGetLocalOption(key: 'access_token'),
+  );
+}
+
+/// Local token check used by every outgoing entry point. A stored token is
+/// not an account-server acceptance and does not restrict the peer ID.
+bool ensureShellOutgoingConnectAllowed() {
+  if (shellOutgoingConnectAllowed()) {
+    return true;
+  }
+  showToast(translate('Login'));
+  return false;
+}
+
 connectMainDesktop(String id,
     {required bool isFileTransfer,
     required bool isViewCamera,
@@ -2532,6 +2558,9 @@ connectMainDesktop(String id,
     String? password,
     String? connToken,
     bool? isSharedPassword}) async {
+  if (!ensureShellOutgoingConnectAllowed()) {
+    return;
+  }
   if (isFileTransfer) {
     await rustDeskWinManager.newFileTransfer(id,
         password: password,
@@ -2580,6 +2609,7 @@ connect(BuildContext context, String id,
     String? connToken,
     bool? isSharedPassword}) async {
   if (id == '') return;
+  if (!ensureShellOutgoingConnectAllowed()) return;
   if (!isDesktop || desktopType == DesktopType.main) {
     try {
       if (Get.isRegistered<IDTextEditingController>()) {
