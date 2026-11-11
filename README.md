@@ -1,3 +1,8 @@
+> **KRDesk** is a modified RustDesk 1.5.1 client, changed 2026-11-05 and reviewed 2026-11-11.
+> Upstream: <https://github.com/rustdesk/rustdesk> (GNU AGPL-3.0). This repository is not the RustDesk project.
+> See [MODIFICATIONS.md](MODIFICATIONS.md). Compiled server settings and a login screen are not access control.
+> The Windows executable is not code-signed. This tree does not claim that a session stays on an assigned machine, ends when a lease ends, or deletes local data.
+
 <p align="center">
   <img src="res/logo-header.svg" alt="RustDesk - Your remote desktop"><br>
   <a href="#raw-steps-to-build">Build</a> •

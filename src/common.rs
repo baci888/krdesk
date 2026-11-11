@@ -2492,56 +2492,26 @@ pub fn rustdesk_interval(i: Interval) -> ThrottledInterval {
     ThrottledInterval::new(i)
 }
 
-/// Hard-setting key read by the Flutter home page: "Y" shows the login dialog
-/// until the user has signed in.
-pub const SHELL_OPTION_REQUIRE_LOGIN: &str = "require-login";
+/// Hard option read by the Flutter UI. "Y" asks for a local token before a
+/// session is opened. The token is not checked with the account server here.
+pub const SHELL_OPTION_REQUIRE_LOGIN: &str = crate::shell_policy::REQUIRE_LOGIN_KEY;
 
 /// Shell build: a custom-client config compiled in at build time.
 ///
 /// The values come from environment variables set by the CI build (GitHub
-/// Actions secrets), so server addresses are never stored in the repository:
+/// Actions secrets), so server addresses are not stored in the repository:
 /// `SHELL_ID_SERVER` (required to enable the shell), `SHELL_RELAY_SERVER`,
 /// `SHELL_API_SERVER`, `SHELL_KEY` and `SHELL_APP_NAME`.
 /// The map uses the same format as the official signed `custom.txt`.
+/// The compiled strings can be read back out of the executable.
 fn builtin_custom_client() -> Option<HashMap<String, serde_json::Value>> {
-    fn non_empty(v: Option<&'static str>) -> Option<&'static str> {
-        v.map(str::trim).filter(|s| !s.is_empty())
-    }
-    let id_server = non_empty(option_env!("SHELL_ID_SERVER"))?;
-    let app_name = non_empty(option_env!("SHELL_APP_NAME")).unwrap_or("KRDesk");
-
-    let mut overrides = serde_json::Map::new();
-    overrides.insert(keys::OPTION_CUSTOM_RENDEZVOUS_SERVER.into(), id_server.into());
-    for (key, value) in [
-        (keys::OPTION_RELAY_SERVER, non_empty(option_env!("SHELL_RELAY_SERVER"))),
-        (keys::OPTION_API_SERVER, non_empty(option_env!("SHELL_API_SERVER"))),
-        (keys::OPTION_KEY, non_empty(option_env!("SHELL_KEY"))),
-    ] {
-        if let Some(value) = value {
-            overrides.insert(key.into(), value.into());
-        }
-    }
-    // Customers must not change servers, and only need their assigned devices.
-    for key in [
-        keys::OPTION_HIDE_SERVER_SETTINGS,
-        keys::OPTION_HIDE_HELP_CARDS,
-        keys::OPTION_DISABLE_DISCOVERY_PANEL,
-        keys::OPTION_DISABLE_GROUP_PANEL,
-    ] {
-        overrides.insert(key.into(), "Y".into());
-    }
-
-    let mut defaults = serde_json::Map::new();
-    defaults.insert(keys::OPTION_CODEC_PREFERENCE.into(), "av1".into());
-
-    let mut data: HashMap<String, serde_json::Value> = HashMap::new();
-    data.insert("app-name".to_owned(), app_name.into());
-    // Controller only: the customer app connects out and is never controlled.
-    data.insert("conn-type".to_owned(), "outgoing".into());
-    data.insert(SHELL_OPTION_REQUIRE_LOGIN.to_owned(), "Y".into());
-    data.insert("override-settings".to_owned(), overrides.into());
-    data.insert("default-settings".to_owned(), defaults.into());
-    Some(data)
+    crate::shell_policy::builtin_client_config(
+        option_env!("SHELL_ID_SERVER"),
+        option_env!("SHELL_RELAY_SERVER"),
+        option_env!("SHELL_API_SERVER"),
+        option_env!("SHELL_KEY"),
+        option_env!("SHELL_APP_NAME"),
+    )
 }
 
 fn apply_builtin_custom_client() {
@@ -2651,6 +2621,11 @@ pub fn get_dst_align_rgba() -> usize {
 
 pub fn read_custom_client(config: &str) {
     apply_builtin_custom_client();
+    // Filename licenses are ignored in the same builds. custom.txt is the
+    // other upstream way to replace the compiled ID, relay, API and key.
+    if crate::shell_policy::locks_compiled_servers() {
+        return;
+    }
     let Ok(data) = decode64(config) else {
         log::error!("Failed to decode custom client config");
         return;

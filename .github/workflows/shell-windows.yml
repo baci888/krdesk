@@ -1,7 +1,10 @@
 # Shell (customer) build for Windows x64.
 #
 # Server settings are compiled into the app from repository secrets, so they
-# never appear in the source (see builtin_custom_client in src/common.rs):
+# are not stored in the source (see builtin_client_config in src/shell_policy.rs).
+# They can be extracted from the executable. They are not an account, device,
+# or lease check. When SHELL_ID_SERVER is set, custom.txt and an executable-name
+# license cannot replace them.
 #   secrets.SHELL_ID_SERVER     required, e.g. 1.2.3.4 or id.example.com
 #   secrets.SHELL_RELAY_SERVER  optional, defaults to the ID server host
 #   secrets.SHELL_API_SERVER    optional, defaults to http://<ID server>:21114
